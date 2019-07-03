@@ -45,12 +45,15 @@ import org.springframework.util.StringUtils;
  * Allows for registering singleton instances that should be shared
  * for all callers of the registry, to be obtained via bean name.
  *
+ * 也支持DisposableBean实例，（这可能或不能正确的注册单例），关闭注册表时destroyed.
+ * 可以注册bean之间的依赖关系，执行适当的关闭顺序。
  * <p>Also supports registration of
  * {@link org.springframework.beans.factory.DisposableBean} instances,
  * (which might or might not correspond to （可能不符合）registered singletons),
  * to be destroyed on shutdown of the registry. Dependencies between
  * beans can be registered to enforce an appropriate shutdown order（执行适当的关机shutdown命令）.
  *
+ *  这个类主要用作基类的BeanFactory实现， 提供基本的管理
  * <p>This class mainly serves as base class for
  * {@link org.springframework.beans.factory.BeanFactory} implementations,
  * factoring out the common management of singleton bean instances. Note that
@@ -69,26 +72,35 @@ import org.springframework.util.StringUtils;
  * @see #registerDisposableBean
  * @see org.springframework.beans.factory.DisposableBean
  * @see org.springframework.beans.factory.config.ConfigurableBeanFactory
+ * 继承SimpleAliasRegistry类和实现了SingletonBeanRegistry接口，
+ * 因此这个类可以有别名注册的功能和单例bean注册的功能，
+ * 并且他还支持注册DisposableBean实例;
+ * 它依赖ObjectFactory接口和DisposableBean接口(关闭注册表时调用到了destroy方法)。
  */
 public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements SingletonBeanRegistry {
 
 	/** Cache of singleton objects: bean name to bean instance. */
+	/** 缓存单例对象 */
 	private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
-
+	/** 缓存单例工厂 */
 	/** Cache of singleton factories: bean name to ObjectFactory. */
 	private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
 
 	/** Cache of early singleton objects: bean name to bean instance. */
+	/**缓存singletonFactory 制造出来的 singleton 的缓存*/
 	private final Map<String, Object> earlySingletonObjects = new HashMap<>(16);
 
-	/** Set of registered singletons, containing the bean names in registration order. */
+	/** Set of registered singletons, containing the bean names in registration order（按注册顺序）. */
+	/** 已经注册的单例对象 */
 	private final Set<String> registeredSingletons = new LinkedHashSet<>(256);
 
 	/** Names of beans that are currently in creation. */
+	/** 正在创建中的单例bean名称集合 */
 	private final Set<String> singletonsCurrentlyInCreation =
 			Collections.newSetFromMap(new ConcurrentHashMap<>(16));
 
 	/** Names of beans currently excluded from in creation checks. */
+	/** 当前在创建检查中排除的bean名称 */
 	private final Set<String> inCreationCheckExclusions =
 			Collections.newSetFromMap(new ConcurrentHashMap<>(16));
 
